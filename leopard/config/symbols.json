@@ -1,0 +1,48 @@
+{
+ "symbols": [
+  {
+   "id": "bar",
+   "name": "BAR",
+   "multiplier": 50
+  },
+  {
+   "id": "s77",
+   "name": "77",
+   "multiplier": 40
+  },
+  {
+   "id": "star",
+   "name": "雙星",
+   "multiplier": 30
+  },
+  {
+   "id": "melon",
+   "name": "雙西瓜",
+   "multiplier": 20
+  },
+  {
+   "id": "bell",
+   "name": "雙鈴鐺",
+   "multiplier": 15
+  },
+  {
+   "id": "green",
+   "name": "綠果",
+   "multiplier": 10
+  },
+  {
+   "id": "orange",
+   "name": "柳橙",
+   "multiplier": 5
+  },
+  {
+   "id": "lychee",
+   "name": "荔枝",
+   "multiplier": 2
+  }
+ ],
+ "jackpot_symbols": [
+  "bar",
+  "s77"
+ ]
+}

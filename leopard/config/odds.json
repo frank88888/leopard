@@ -1,0 +1,9 @@
+{
+ "rtp_target": 0.93,
+ "luck_bonus_prob": 0.06,
+ "bonus_weights": {
+  "1": 60,
+  "2": 30,
+  "3": 10
+ }
+}

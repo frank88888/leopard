@@ -1,0 +1,15 @@
+{
+ "bet_cap": 99,
+ "repeat_interval_ms": 100,
+ "hold_1_sec": 1.0,
+ "hold_2_sec": 3.0,
+ "double_up_max": 10,
+ "win_cap": 9999,
+ "jackpot_coef": 5,
+ "first_interval": 0.4,
+ "min_interval": 0.04,
+ "min_cruise_laps": 2,
+ "max_cruise_laps": 3,
+ "volume": 0.8,
+ "admin_password": "1234"
+}
