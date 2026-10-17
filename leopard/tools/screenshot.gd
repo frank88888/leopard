@@ -29,6 +29,19 @@ func _init() -> void:
 		_shot(out + "/5_double.png")
 	while scene.busy:
 		await _frames(1)
+	var st: SettingsMenu = scene.settings
+	st.open()
+	await _frames(3)
+	_shot(out + "/8_settings_root.png")
+	for pg in ["audio", "display", "controls", "save"]:
+		st._show(pg)
+		await _frames(3)
+		_shot(out + "/9_menu_%s.png" % pg)
+	st._show("controls")
+	st._begin_capture("start", "key", 0)
+	await _frames(2)
+	_shot(out + "/9_menu_capture.png")
+	st.close()
 	scene.backoffice.open()
 	scene.backoffice._pw_edit.text = scene.cfg.s["admin_password"]
 	scene.backoffice._try_login()

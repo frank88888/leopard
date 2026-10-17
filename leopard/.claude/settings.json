@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(git reset:*)",
+      "Bash(git rebase:*)",
+      "Bash(git commit --amend:*)",
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(git push --force-with-lease:*)",
+      "Bash(git push --delete:*)",
+      "Bash(git branch -D:*)",
+      "Bash(git branch -d:*)",
+      "Bash(git tag -d:*)",
+      "Bash(git clean:*)",
+      "Bash(git restore:*)",
+      "Bash(git checkout --:*)",
+      "Bash(git stash drop:*)",
+      "Bash(git stash clear:*)",
+      "Bash(git reflog expire:*)",
+      "Bash(git gc:*)",
+      "Bash(git filter-branch:*)",
+      "PowerShell(git reset:*)",
+      "PowerShell(git rebase:*)",
+      "PowerShell(git commit --amend:*)",
+      "PowerShell(git push --force:*)",
+      "PowerShell(git push -f:*)",
+      "PowerShell(git push --force-with-lease:*)",
+      "PowerShell(git push --delete:*)",
+      "PowerShell(git branch -D:*)",
+      "PowerShell(git branch -d:*)",
+      "PowerShell(git tag -d:*)",
+      "PowerShell(git clean:*)",
+      "PowerShell(git restore:*)",
+      "PowerShell(git checkout --:*)",
+      "PowerShell(git stash drop:*)",
+      "PowerShell(git stash clear:*)",
+      "PowerShell(git reflog expire:*)",
+      "PowerShell(git gc:*)",
+      "PowerShell(git filter-branch:*)"
+    ]
+  }
+}

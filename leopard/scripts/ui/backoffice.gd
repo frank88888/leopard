@@ -252,7 +252,7 @@ func _apply_settings() -> void:
 	cfg.apply_overrides(trial)
 	cfg.save_overrides()
 	game.reload_config()
-	main.sfx.volume = float(cfg.s["volume"])
+	main.set_master_volume(float(cfg.s["volume"]))
 	for i in cfg.symbol_count():
 		main.slots[i].mult = cfg.multipliers[i]
 		main.slots[i].queue_redraw()
@@ -270,7 +270,7 @@ func _restore_defaults() -> void:
 	cfg.apply_overrides(d.overrides_dict())
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(GameConfig.OVERRIDE_PATH))
 	game.reload_config()
-	main.sfx.volume = float(cfg.s["volume"])
+	main.set_master_volume(float(cfg.s["volume"]))
 	for i in cfg.symbol_count():
 		main.slots[i].mult = cfg.multipliers[i]
 		main.slots[i].queue_redraw()

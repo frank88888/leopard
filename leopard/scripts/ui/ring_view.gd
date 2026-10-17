@@ -10,7 +10,18 @@ var glow: Array[float] = []  ## 每格亮度 0~1,逐格衰減形成拖尾
 var flash: Dictionary = {}  ## 閃爍中的格 idx → true
 var jackpot_flash := 0.0
 var rest_cell := -1  ## 待機時持續亮著的格(上局停止格)
+var led_scale := 1.0  ## 跑燈 LED 大小倍率
+var theme_fill := Color("1a3fa8")  ## 中央底板顏色
+var theme_edge := Color("0a1f6a")
 var _t := 0.0
+
+const THEME_COLORS := {
+	"blue": ["1a3fa8", "0a1f6a"],
+	"green": ["14753a", "0a4a22"],
+	"red": ["a8261a", "6a120a"],
+	"purple": ["5a2aa8", "34156a"],
+}
+const LED_SCALES := {"small": 0.75, "medium": 1.0, "large": 1.35}
 
 
 func setup(ring_cells: Array[int], symbol_ids: Array[String]) -> void:
@@ -31,6 +42,12 @@ func setup(ring_cells: Array[int], symbol_ids: Array[String]) -> void:
 func cell_rect(i: int) -> Rect2:
 	var g := Ring.grid_pos(i)
 	return Rect2(Vector2(g.x, g.y) * CELL, Vector2(CELL, CELL))
+
+
+func set_theme_name(id: String) -> void:
+	var c: Array = THEME_COLORS.get(id, THEME_COLORS["blue"])
+	theme_fill = Color(c[0])
+	theme_edge = Color(c[1])
 
 
 func light(i: int) -> void:
@@ -55,8 +72,8 @@ func _process(delta: float) -> void:
 func _draw() -> void:
 	var blink := int(_t * 6.0) % 2 == 0
 	# 中央藍色底板(參考機台風格)
-	draw_rect(Rect2(Vector2(CELL, CELL), Vector2(CELL * 5, CELL * 5)), Color("1a3fa8"))
-	draw_rect(Rect2(Vector2(CELL, CELL), Vector2(CELL * 5, CELL * 5)), Color("0a1f6a"), false, 6.0)
+	draw_rect(Rect2(Vector2(CELL, CELL), Vector2(CELL * 5, CELL * 5)), theme_fill)
+	draw_rect(Rect2(Vector2(CELL, CELL), Vector2(CELL * 5, CELL * 5)), theme_edge, false, 6.0)
 	for i in glow.size():
 		var r := cell_rect(i).grow(-3)
 		draw_rect(r, Color("f4f1e6"))
@@ -77,12 +94,13 @@ func _draw() -> void:
 		elif on_x_edge and not on_y_edge:
 			inward.y = 0.0  # 左/右邊同理
 		var dot := c + inward * CELL * 0.5
-		_led(dot, Vector2(32, 20), Color("5a1010"))
+		var led := Vector2(32, 20) * led_scale
+		_led(dot, led, Color("5a1010"))
 		if g > 0.0:
 			draw_rect(r, Color(1.0, 0.85, 0.2, 0.35 * g))
 			draw_rect(r, Color(1.0, 0.2, 0.2, g), false, 5.0)
-			_led(dot, Vector2(32, 20) + Vector2(10, 10) * g, Color(1.0, 0.15, 0.15, 0.4 * g))
-			_led(dot, Vector2(32, 20), Color(1.0, 0.35, 0.3, g))
+			_led(dot, led + Vector2(10, 10) * g, Color(1.0, 0.15, 0.15, 0.4 * g))
+			_led(dot, led, Color(1.0, 0.35, 0.3, g))
 	if jackpot_flash > 0.0:
 		var a := 0.5 * jackpot_flash * (1.0 if blink else 0.4)
 		draw_rect(Rect2(Vector2.ZERO, size), Color(1, 0.9, 0.3, a))

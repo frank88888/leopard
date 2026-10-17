@@ -32,3 +32,10 @@ There is no single-test flag: edit the calls in `_init()` of `tests/run_tests.gd
 - `:=` fails on untyped loop variables / untyped dictionary values — declare the type explicitly.
 - Typed arrays (`Array[int]`) don't compare equal to untyped literals; build a typed variable first.
 - Heredocs with Chinese text in Bash tool calls failed once; use the Write tool for source files.
+
+## Git rules
+
+- Claude may write commit messages and run `git add` / `git commit` (new commits only) when the user asks. Add the Co-Authored-By trailer.
+- Never destroy prior work. Forbidden: `git reset` (any mode), deleting or rewriting commits (`commit --amend`, `rebase`, `filter-branch`, `commit-tree` tricks, `reflog expire`/`gc --prune`), force push (`--force`, `-f`, `--force-with-lease`), deleting branches/tags (`branch -D`, `tag -d`, `push --delete`), `git clean`, `git checkout -- <path>` / `git restore` that discards uncommitted changes, `git stash drop/clear`.
+- To undo something, use `git revert` (adds a new commit) or ask the user first.
+- Don't `git push` unless the user explicitly asks.

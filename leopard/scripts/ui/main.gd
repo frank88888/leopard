@@ -2,7 +2,6 @@ extends Control
 ## 主畫面:組合 HUD、跑燈環、8 個押注視窗、操作鍵,並串接 GameState / 動畫 / 音效 / 存檔。
 
 const SAVE_PATH := "user://save.json"
-const COIN_KEYS := {KEY_F1: 1, KEY_F2: 5, KEY_F3: 10, KEY_F4: 50}
 const BACKOFFICE_HOLD_SEC := 3.0
 
 var cfg: GameConfig
@@ -20,6 +19,10 @@ var btn_big: Button
 var btn_collect: Button
 var btn_start: Button
 var backoffice: Backoffice
+var settings: SettingsMenu
+var prefs: UserPrefs
+var btn_settings: Button
+var coin_caption: Label
 var anim_rng := RandomNumberGenerator.new()
 
 var busy := false  ## 動畫進行中,鎖住操作
@@ -40,10 +43,11 @@ func _ready() -> void:
 	if not saved.is_empty():
 		recovered = int(saved["phase"]) == GameState.Phase.SPINNING
 		game.restore(saved)
+	prefs = UserPrefs.load_file(UserPrefs.PATH, float(cfg.s["volume"]))
 	sfx = SfxPlayer.new()
-	sfx.volume = float(cfg.s["volume"])
 	add_child(sfx)
 	_build_ui()
+	apply_prefs()
 	game.changed.connect(_on_changed)
 	game.round_started.connect(func(_r): _save_now())  # 結果決定後、動畫開始前先存檔
 	game.round_finished.connect(func(_r): _save_now())
@@ -62,6 +66,7 @@ func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	var bg := ColorRect.new()
 	bg.color = Color("0e0b1c")
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 
@@ -76,7 +81,10 @@ func _build_ui() -> void:
 		var v: int = coin_vals[k]
 		b.pressed.connect(func(): _insert_coin(v))
 		b.focus_mode = Control.FOCUS_NONE
-	_caption("投幣 F1~F4", Vector2(400, 30), 22, Color("8880b0"), 280)
+	coin_caption = _caption("投幣", Vector2(400, 30), 22, Color("8880b0"), 280)
+	btn_settings = _button("設定", Rect2(270, 6, 120, 50), 26)
+	btn_settings.focus_mode = Control.FOCUS_NONE
+	btn_settings.pressed.connect(func(): settings.open())
 
 	# 跑燈環
 	ring_view = RingView.new()
@@ -113,10 +121,10 @@ func _build_ui() -> void:
 		repeaters.append(HoldRepeater.new(float(cfg.s["hold_1_sec"]), float(cfg.s["hold_2_sec"]), float(cfg.s["repeat_interval_ms"]) / 1000.0))
 
 	# 操作鍵
-	btn_small = _button("小 (Z)", Rect2(20, 1310, 200, 110), 40)
-	btn_big = _button("大 (X)", Rect2(230, 1310, 200, 110), 40)
-	btn_collect = _button("收分 (C)", Rect2(440, 1310, 200, 110), 40)
-	btn_start = _button("啟動 (空白)", Rect2(650, 1310, 410, 110), 48)
+	btn_small = _button("小", Rect2(20, 1310, 200, 110), 40)
+	btn_big = _button("大", Rect2(230, 1310, 200, 110), 40)
+	btn_collect = _button("收分", Rect2(440, 1310, 200, 110), 40)
+	btn_start = _button("啟動", Rect2(650, 1310, 410, 110), 48)
 	for b in [btn_small, btn_big, btn_collect, btn_start]:
 		b.focus_mode = Control.FOCUS_NONE
 	btn_small.pressed.connect(func(): _on_guess(DoubleUp.Guess.SMALL))
@@ -124,6 +132,10 @@ func _build_ui() -> void:
 	btn_collect.pressed.connect(_on_collect)
 	btn_start.pressed.connect(_on_start)
 
+	settings = SettingsMenu.new()
+	settings.visible = false
+	settings.setup(self)
+	add_child(settings)
 	backoffice = Backoffice.new()
 	backoffice.visible = false
 	backoffice.setup(self)
@@ -172,39 +184,135 @@ func _button(text: String, rect: Rect2, fsize: int) -> Button:
 # ---------- 輸入 ----------
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not (event is InputEventKey) or backoffice.visible:
+	if not (event is InputEventKey) or backoffice.visible or settings.visible:
 		return
 	var k := event as InputEventKey
 	if k.echo:
 		return
-	var key := k.physical_keycode
-	var slot := _slot_for_key(key)
-	if slot >= 0:
-		if k.pressed:
-			_slot_press(slot)
+	if k.pressed and k.physical_keycode == KEY_ESCAPE:
+		settings.open()
+		return
+	var id := prefs.bindings.action_for_key(k.physical_keycode)
+	if id != "":
+		_do_action(id, k.pressed)
+
+
+## 滑鼠鍵走 _input:畫面上的控制項會吃掉滑鼠事件,到不了 _unhandled_input。
+func _input(event: InputEvent) -> void:
+	if not (event is InputEventMouseButton) or backoffice.visible or settings.visible:
+		return
+	var m := event as InputEventMouseButton
+	var id := prefs.bindings.action_for_mouse(m.button_index)
+	if id != "":
+		_do_action(id, m.pressed)
+
+
+func _do_action(id: String, pressed: bool) -> void:
+	if id.begins_with("bet_"):
+		var i := int(id.substr(4))
+		if pressed:
+			_slot_press(i)
 		else:
-			_slot_release(slot)
+			_slot_release(i)
 		return
-	if not k.pressed:
+	if not pressed:
 		return
-	if COIN_KEYS.has(key):
-		_insert_coin(COIN_KEYS[key])
-	elif key == KEY_SPACE or key == KEY_ENTER:
-		_on_start()
-	elif key == KEY_C:
-		_on_collect()
-	elif key == KEY_Z:
-		_on_guess(DoubleUp.Guess.SMALL)
-	elif key == KEY_X:
-		_on_guess(DoubleUp.Guess.BIG)
+	if id.begins_with("coin_"):
+		_insert_coin(int(id.substr(5)))
+		return
+	match id:
+		"start": _on_start()
+		"collect": _on_collect()
+		"small": _on_guess(DoubleUp.Guess.SMALL)
+		"big": _on_guess(DoubleUp.Guess.BIG)
 
 
-func _slot_for_key(key: int) -> int:
-	if key >= KEY_1 and key <= KEY_8:
-		return key - KEY_1
-	if key >= KEY_KP_1 and key <= KEY_KP_8:
-		return key - KEY_KP_1
-	return -1
+# ---------- 偏好設定 / 手動存檔 ----------
+
+func prefs_changed() -> void:
+	apply_prefs()
+	prefs.save()
+
+
+func apply_prefs() -> void:
+	var a := prefs.audio
+	sfx.volume = a["master"]
+	sfx.muted = a["mute"]
+	sfx.tick_pitch = a["tick_pitch"]
+	for cat in ["tick", "bet", "coin", "win"]:
+		sfx.set_style(cat, a[cat])
+	var d := prefs.display
+	ring_view.set_theme_name(d["theme"])
+	ring_view.led_scale = RingView.LED_SCALES[d["led_size"]]
+	var mode := DisplayServer.WINDOW_MODE_FULLSCREEN if d["fullscreen"] else DisplayServer.WINDOW_MODE_WINDOWED
+	if DisplayServer.window_get_mode() != mode:
+		DisplayServer.window_set_mode(mode)
+	_refresh_labels()
+
+
+## 後台改「預設音量」時一併套用到玩家主音量。
+func set_master_volume(v: float) -> void:
+	prefs.audio["master"] = v
+	prefs_changed()
+
+
+func _speed() -> float:
+	return float(prefs.game["anim_speed"])
+
+
+func _labeled(base: String, id: String) -> String:
+	var h := prefs.bindings.hint(id) if prefs.display["key_hints"] else ""
+	return "%s (%s)" % [base, h] if h != "" else base
+
+
+func _refresh_labels() -> void:
+	btn_small.text = _labeled("小", "small")
+	btn_big.text = _labeled("大", "big")
+	btn_collect.text = _labeled("收分", "collect")
+	btn_settings.text = "設定"
+	var hints: Array[String] = []
+	if prefs.display["key_hints"]:
+		for id in ["coin_1", "coin_5", "coin_10", "coin_50"]:
+			var h := prefs.bindings.hint(id)
+			if h != "":
+				hints.append(h)
+	coin_caption.text = "投幣 " + "/".join(hints) if hints.size() > 0 else "投幣"
+	_refresh()
+
+
+func can_manage_saves() -> bool:
+	return not busy and game.phase != GameState.Phase.SPINNING
+
+
+func save_to_slot(i: int) -> bool:
+	if not can_manage_saves():
+		return false
+	return SaveSlots.write(i, game.serialize(), prefs.to_dict())
+
+
+## 讀取存檔欄位。帳務紀錄維持目前的(後台帳本不回溯);with_prefs 時一併還原當時的偏好設定。
+func load_from_slot(i: int, with_prefs: bool) -> bool:
+	if not can_manage_saves():
+		return false
+	var d := SaveSlots.read(i)
+	if d.is_empty():
+		return false
+	var g: Dictionary = d["game"].duplicate()
+	g["acct"] = game.acct.serialize()
+	game.restore(g)
+	if with_prefs and d.get("prefs") is Dictionary:
+		prefs.from_dict(d["prefs"])
+		prefs_changed()
+	hud_lock = false
+	shown_win = game.win
+	shown_credit = game.credit
+	dice_view.visible = false
+	ring_view.clear_lights()
+	ring_view.light(game.last_stop)
+	_clear_message()
+	_save_now()
+	_refresh()
+	return true
 
 
 func _slot_press(i: int) -> void:
@@ -273,7 +381,7 @@ func _refresh() -> void:
 	btn_big.disabled = btn_small.disabled
 	btn_collect.disabled = not (idle and game.win > 0)
 	var can_repeat := game.bets.total() == 0 and game.bets.last_total() > 0 and game.credit > 0
-	btn_start.text = "續押 (空白)" if can_repeat else "啟動 (空白)"
+	btn_start.text = _labeled("續押" if can_repeat else "啟動", "start")
 	btn_start.disabled = not idle or not (game.bets.total() > 0 or can_repeat or game.win > 0 and game.bets.last_total() > 0)
 	if idle:
 		ring_view.rest_cell = game.last_stop
@@ -383,7 +491,8 @@ func _play_round(rd: Dictionary) -> void:
 
 func _big_win(amount: int) -> void:
 	sfx.play("jackpot")
-	ring_view.jackpot_flash = 2.5
+	if prefs.display["jackpot_flash"]:
+		ring_view.jackpot_flash = 2.5
 	_message("大獎!\n%d" % amount)
 
 
@@ -394,7 +503,7 @@ func _run_plan(start: int, plan: SpinPlan) -> void:
 	var n := plan.intervals.size()
 	while idx < n:
 		await get_tree().process_frame
-		acc += get_process_delta_time()
+		acc += get_process_delta_time() * _speed()
 		while idx < n and acc >= plan.intervals[idx]:
 			acc -= plan.intervals[idx]
 			idx += 1
@@ -404,13 +513,13 @@ func _run_plan(start: int, plan: SpinPlan) -> void:
 
 
 func _wait(sec: float) -> void:
-	await get_tree().create_timer(sec).timeout
+	await get_tree().create_timer(sec / _speed()).timeout
 
 
 ## WIN 與 CREDIT 的計數動畫(逐分跳動 + 計數音)。
 func _count(win_from: int, win_to: int, credit_from: int, credit_to: int) -> void:
 	var diff := absi(win_to - win_from)
-	var dur := clampf(diff * 0.015, 0.25, 1.6)
+	var dur := clampf(diff * 0.015, 0.25, 1.6) / _speed()
 	var t := 0.0
 	var last := -1
 	while t < dur:

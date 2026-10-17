@@ -26,6 +26,7 @@ func _init() -> void:
 	test_double_up(cfg)
 	test_hold()
 	test_save(cfg)
+	test_prefs(cfg)
 	test_rtp(cfg)
 	print("passed=%d failed=%d" % [passed, failed])
 	quit(1 if failed > 0 else 0)
@@ -338,6 +339,70 @@ func test_save(cfg: GameConfig) -> void:
 	check(SaveData.load_file(path).is_empty(), "tamper detected")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 	check(SaveData.load_file("user://nope.json").is_empty(), "missing file empty")
+
+
+func test_prefs(cfg: GameConfig) -> void:
+	print("prefs")
+	var b := InputBindings.new()
+	check(b.action_for_key(KEY_SPACE) == "start" and b.action_for_key(KEY_ENTER) == "start", "default start keys")
+	check(b.action_for_key(KEY_KP_3) == "bet_2" and b.action_for_key(KEY_8) == "bet_7", "default bet keys")
+	check(b.action_for_mouse(MOUSE_BUTTON_RIGHT) == "start", "default mouse start")
+	# 搶鍵:Z 改給收分,原本的比小被清掉
+	check(b.set_key("collect", 1, KEY_Z) == "small", "rebind reports displaced action")
+	check(b.action_for_key(KEY_Z) == "collect" and b.map["small"]["keys"][0] == 0, "key moved, old slot cleared")
+	check(b.set_key("start", 0, KEY_ESCAPE) == "!", "reserved key refused")
+	check(b.set_mouse("big", MOUSE_BUTTON_LEFT) == "!", "left mouse refused")
+	check(b.set_mouse("collect", MOUSE_BUTTON_RIGHT) == "start" and b.map["start"]["mouse"] == 0, "mouse rebind steals")
+	b.reset_action("small")
+	check(b.map["small"]["keys"][0] == KEY_Z and b.map["collect"]["keys"][1] == 0, "reset action restores default, taking key back")
+	# 序列化來回(經 JSON,數字變 float)
+	var b2 := InputBindings.new()
+	b2.from_dict(JSON.parse_string(JSON.stringify(b.to_dict())))
+	check(b2.to_dict() == b.to_dict(), "bindings json roundtrip")
+	var bad := {"start": {"keys": [KEY_ESCAPE, KEY_F1], "mouse": 99}, "coin_1": {"keys": [KEY_F1, 0], "mouse": 0}}
+	b2.from_dict(bad)
+	check(b2.map["start"]["keys"][0] == 0 and b2.map["start"]["mouse"] == 0, "bad bindings sanitized")
+	check(b2.map["coin_1"]["keys"][0] == KEY_F1 and b2.map["start"]["keys"][1] == 0, "duplicate key: first wins")
+
+	var path := "user://test_prefs.json"
+	var p := UserPrefs.new(0.8)
+	p.audio["master"] = 0.35
+	p.audio["tick"] = "wood"
+	p.display["theme"] = "green"
+	p.game["anim_speed"] = 1.5
+	p.bindings.set_key("big", 0, KEY_B)
+	check(p.save(path), "prefs saved")
+	var q := UserPrefs.load_file(path, 0.8)
+	check(is_equal_approx(q.audio["master"], 0.35) and q.audio["tick"] == "wood", "audio prefs roundtrip")
+	check(q.display["theme"] == "green" and is_equal_approx(q.game["anim_speed"], 1.5), "display/game roundtrip")
+	check(q.bindings.action_for_key(KEY_B) == "big", "bindings in prefs roundtrip")
+	var junk := UserPrefs.new(0.8)
+	junk.from_dict({"audio": {"master": 9, "tick": "nope", "tick_pitch": 0.0}, "game": {"anim_speed": 50}})
+	check(junk.audio["master"] == 1.0 and junk.audio["tick"] == "relay" and junk.audio["tick_pitch"] == 0.5, "audio values clamped / invalid choice falls back")
+	check(junk.game["anim_speed"] == 2.0, "anim speed clamped")
+	p.reset_section("audio")
+	check(is_equal_approx(p.audio["master"], 0.8) and p.display["theme"] == "green", "reset one section only")
+	check(UserPrefs.load_file("user://nope.json", 0.6).audio["master"] == 0.6, "missing prefs → default master")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+
+	# 存檔欄位
+	var dir := "user://test_slots"
+	var g := GameState.new(cfg, 5)
+	g.insert_coin(40)
+	g.add_bet(2, 3)
+	check(SaveSlots.summary(3, dir)["empty"], "slot starts empty")
+	check(SaveSlots.write(3, g.serialize(), p.to_dict(), dir), "slot written")
+	var sm := SaveSlots.summary(3, dir)
+	check(not sm["empty"] and sm["credit"] == g.credit and sm["date"].length() == 19, "slot summary has credit + date")
+	var rd := SaveSlots.read(3, dir)
+	var g2 := GameState.new(cfg, 6)
+	g2.restore(rd["game"])
+	check(g2.credit == g.credit and g2.bets.bets[2] == 3, "slot restores game")
+	var p2 := UserPrefs.new(0.8)
+	p2.from_dict(rd["prefs"])
+	check(p2.display["theme"] == "green", "slot carries prefs")
+	check(SaveSlots.delete(3, dir) and SaveSlots.summary(3, dir)["empty"], "slot deleted")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(dir))
 
 
 func test_rtp(cfg: GameConfig) -> void:
