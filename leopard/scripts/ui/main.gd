@@ -80,12 +80,12 @@ func _build_ui() -> void:
 
 	# 跑燈環
 	ring_view = RingView.new()
-	ring_view.position = Vector2(90, 150)
+	ring_view.position = Vector2(92, 150)
 	add_child(ring_view)
 	ring_view.setup(cfg.ring_cells, cfg.symbol_ids)
 	center_label = Label.new()
 	center_label.position = Vector2(190, 400)
-	center_label.size = Vector2(700, 300)
+	center_label.size = Vector2(620, 260)
 	center_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	center_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	center_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -94,9 +94,9 @@ func _build_ui() -> void:
 	center_label.add_theme_constant_override("outline_size", 8)
 	center_label.add_theme_color_override("font_outline_color", Color.BLACK)
 	ring_view.add_child(center_label)
-	center_label.position = Vector2(100, 250)
+	center_label.position = Vector2(138, 150)
 	dice_view = DiceView.new()
-	dice_view.position = Vector2(270, 500)
+	dice_view.position = Vector2(268, 520)
 	dice_view.visible = false
 	ring_view.add_child(dice_view)
 

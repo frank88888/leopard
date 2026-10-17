@@ -34,25 +34,25 @@ func _init() -> void:
 func test_config_and_ring(cfg: GameConfig) -> void:
 	print("ring")
 	var cells := cfg.ring_cells
-	check(cells.size() == 32, "32 cells")
+	check(cells.size() == 24, "24 cells")
 	check(cells[0] == 0, "cell 0 is BAR")
 	var counts := {}
 	for c in cells:
 		counts[c] = counts.get(c, 0) + 1
-	var expect := {0: 1, 1: 2, 2: 2, 3: 3, 4: 4, 5: 4, 6: 6, 7: 8, GameConfig.LUCK: 2}
+	var expect := {0: 1, 1: 2, 2: 2, 3: 2, 4: 3, 5: 3, 6: 4, 7: 5, GameConfig.LUCK: 2}
 	check(counts == expect, "cell counts " + str(counts))
-	for i in 32:
-		check(cells[i] != cells[(i + 1) % 32], "no adjacent same at %d" % i)
+	for i in 24:
+		check(cells[i] != cells[(i + 1) % 24], "no adjacent same at %d" % i)
 	var seen := {}
-	for i in 32:
+	for i in 24:
 		var p := Ring.grid_pos(i)
-		check(p.x == 0 or p.x == 8 or p.y == 0 or p.y == 8, "on border %d" % i)
+		check(p.x == 0 or p.x == 6 or p.y == 0 or p.y == 6, "on border %d" % i)
 		seen[p] = true
-	check(seen.size() == 32, "grid positions unique")
-	check(Ring.grid_pos(0) == Vector2i(4, 0), "idx0 top middle")
-	check(Ring.grid_pos(1) == Vector2i(5, 0), "idx1 moves right")
-	check(Ring.grid_pos(4) == Vector2i(8, 0) and Ring.grid_pos(12) == Vector2i(8, 8), "corners")
-	check(Ring.grid_pos(20) == Vector2i(0, 8) and Ring.grid_pos(28) == Vector2i(0, 0), "corners 2")
+	check(seen.size() == 24, "grid positions unique")
+	check(Ring.grid_pos(0) == Vector2i(3, 0), "idx0 top middle")
+	check(Ring.grid_pos(1) == Vector2i(4, 0), "idx1 moves right")
+	check(Ring.grid_pos(3) == Vector2i(6, 0) and Ring.grid_pos(9) == Vector2i(6, 6), "corners")
+	check(Ring.grid_pos(15) == Vector2i(0, 6) and Ring.grid_pos(21) == Vector2i(0, 0), "corners 2")
 
 
 func test_odds(cfg: GameConfig) -> void:
@@ -214,12 +214,12 @@ func test_spin_plan(cfg: GameConfig) -> void:
 	print("spin plan")
 	var fi: float = cfg.s["first_interval"]
 	var mi: float = cfg.s["min_interval"]
-	for start in 32:
-		for target in 32:
+	for start in 24:
+		for target in 24:
 			var laps := 2 + (start + target) % 2
 			var p := SpinPlan.build(start, target, laps, fi, mi)
-			check((start + p.total_steps()) % 32 == target, "stop at target %d->%d" % [start, target])
-			check(p.cruise_steps >= laps * 32, "cruise >= laps")
+			check((start + p.total_steps()) % 24 == target, "stop at target %d->%d" % [start, target])
+			check(p.cruise_steps >= laps * 24, "cruise >= laps")
 	var p0 := SpinPlan.build(0, 5, 2, fi, mi)
 	for i in range(1, p0.accel_steps):
 		check(p0.intervals[i] <= p0.intervals[i - 1], "accel monotonic")

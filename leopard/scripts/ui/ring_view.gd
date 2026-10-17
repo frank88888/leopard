@@ -1,8 +1,8 @@
 class_name RingView
 extends Control
-## 9x9 方環跑燈:32 格,索引 0 在上邊正中,順時針。
+## 7x7 方環跑燈:24 格,索引 0 在上邊正中,順時針。
 
-const CELL := 100.0
+const CELL := 128.0
 
 var cells: Array[int] = []
 var ids: Array[String] = []
@@ -18,7 +18,7 @@ func setup(ring_cells: Array[int], symbol_ids: Array[String]) -> void:
 	ids = symbol_ids
 	glow.resize(GameConfig.RING_SIZE)
 	glow.fill(0.0)
-	custom_minimum_size = Vector2(CELL * 9, CELL * 9)
+	custom_minimum_size = Vector2(CELL * 7, CELL * 7)
 	size = custom_minimum_size
 	for i in GameConfig.RING_SIZE:
 		var icon := SymbolIcon.new("luck" if cells[i] == GameConfig.LUCK else ids[cells[i]])
@@ -54,20 +54,44 @@ func _process(delta: float) -> void:
 
 func _draw() -> void:
 	var blink := int(_t * 6.0) % 2 == 0
+	# 中央藍色底板(參考機台風格)
+	draw_rect(Rect2(Vector2(CELL, CELL), Vector2(CELL * 5, CELL * 5)), Color("1a3fa8"))
+	draw_rect(Rect2(Vector2(CELL, CELL), Vector2(CELL * 5, CELL * 5)), Color("0a1f6a"), false, 6.0)
 	for i in glow.size():
 		var r := cell_rect(i).grow(-3)
-		var base := Color("1c1830")
-		draw_rect(r, base)
+		draw_rect(r, Color("f4f1e6"))
+		draw_rect(r, Color("8a8570"), false, 2.0)
 		var g := glow[i]
 		if i == rest_cell:
 			g = maxf(g, 0.8)
 		if flash.has(i):
 			g = 1.0 if blink else 0.15
+		# 格子內側(朝中央)的紅色跑燈點
+		var c := cell_rect(i).get_center()
+		var g2 := Ring.grid_pos(i)
+		var inward := Vector2(signf(3.0 - g2.x), signf(3.0 - g2.y))
+		var on_x_edge := g2.x == 0 or g2.x == 6
+		var on_y_edge := g2.y == 0 or g2.y == 6
+		if on_y_edge and not on_x_edge:
+			inward.x = 0.0  # 上/下邊:燈在圖示內側邊的正中央
+		elif on_x_edge and not on_y_edge:
+			inward.y = 0.0  # 左/右邊同理
+		var dot := c + inward * CELL * 0.5
+		_led(dot, Vector2(32, 20), Color("5a1010"))
 		if g > 0.0:
-			draw_rect(r, Color(1.0, 0.85, 0.2, 0.55 * g))
-			draw_rect(r, Color(1.0, 0.95, 0.5, g), false, 5.0)
-		else:
-			draw_rect(r, Color("4a4468"), false, 2.0)
+			draw_rect(r, Color(1.0, 0.85, 0.2, 0.35 * g))
+			draw_rect(r, Color(1.0, 0.2, 0.2, g), false, 5.0)
+			_led(dot, Vector2(32, 20) + Vector2(10, 10) * g, Color(1.0, 0.15, 0.15, 0.4 * g))
+			_led(dot, Vector2(32, 20), Color(1.0, 0.35, 0.3, g))
 	if jackpot_flash > 0.0:
 		var a := 0.5 * jackpot_flash * (1.0 if blink else 0.4)
 		draw_rect(Rect2(Vector2.ZERO, size), Color(1, 0.9, 0.3, a))
+
+
+## 圓角方形 LED(非正方形)。
+func _led(center: Vector2, sz: Vector2, col: Color) -> void:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = col
+	sb.set_corner_radius_all(6)
+	sb.anti_aliasing = true
+	draw_style_box(sb, Rect2(center - sz / 2.0, sz))

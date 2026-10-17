@@ -1,6 +1,6 @@
 class_name Ring
 extends RefCounted
-## 32 格環:索引 0 = 上邊中間(BAR),順時針。
+## 24 格環:索引 0 = 上邊中間(BAR),順時針。
 
 var cells: Array[int] = []
 
@@ -24,15 +24,15 @@ func pick_cell(rng: RandomNumberGenerator, symbol: int) -> int:
 	return c[rng.randi_range(0, c.size() - 1)]
 
 
-## 索引 → 9x9 方環上的 (col,row),順時針,索引 0 在上邊正中 (4,0)。
+## 索引 → 7x7 方環上的 (col,row),順時針,索引 0 在上邊正中 (3,0)。
 static func grid_pos(idx: int) -> Vector2i:
 	idx = posmod(idx, GameConfig.RING_SIZE)
-	if idx <= 4:
-		return Vector2i(4 + idx, 0)
-	if idx <= 12:
-		return Vector2i(8, idx - 4)
-	if idx <= 20:
-		return Vector2i(8 - (idx - 12), 8)
-	if idx <= 28:
-		return Vector2i(0, 8 - (idx - 20))
-	return Vector2i(idx - 28, 0)
+	if idx <= 3:
+		return Vector2i(3 + idx, 0)
+	if idx <= 9:
+		return Vector2i(6, idx - 3)
+	if idx <= 15:
+		return Vector2i(6 - (idx - 9), 6)
+	if idx <= 21:
+		return Vector2i(0, 6 - (idx - 15))
+	return Vector2i(idx - 21, 0)

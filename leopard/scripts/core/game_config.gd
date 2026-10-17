@@ -7,14 +7,14 @@ const RING_PATH := "res://config/ring_layout.json"
 const ODDS_PATH := "res://config/odds.json"
 const SETTINGS_PATH := "res://config/settings.json"
 
-const RING_SIZE := 32
+const RING_SIZE := 24
 const LUCK := -1  ## 環上 LUCK 格的符號代碼
 
 var symbol_ids: Array[String] = []
 var symbol_names: Array[String] = []
 var multipliers: Array[int] = []
 var jackpot_symbols: Array[int] = []
-var ring_cells: Array[int] = []  ## 長度 32,元素為符號索引或 LUCK
+var ring_cells: Array[int] = []  ## 長度 24,元素為符號索引或 LUCK
 var rtp_target := 0.93
 var luck_bonus_prob := 0.06
 var bonus_weights: Dictionary = {1: 60, 2: 30, 3: 10}  ## 送燈次數 → 權重

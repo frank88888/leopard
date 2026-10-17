@@ -1,7 +1,7 @@
 class_name SpinPlan
 extends RefCounted
 ## 跑燈步進間隔。加速依自由落體 Δ_n = Δ1·(√n − √(n−1)),等速,減速為加速的時間反轉。
-## 保證 (start + 總步數) mod 32 == target。
+## 保證 (start + 總步數) mod 24 == target。
 
 var intervals: Array[float] = []  ## 第 k 步前的等待秒數
 var accel_steps := 0
