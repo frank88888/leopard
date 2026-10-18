@@ -27,6 +27,7 @@ func _init() -> void:
 	test_hold()
 	test_save(cfg)
 	test_prefs(cfg)
+	test_sfx_debug()
 	test_rtp(cfg)
 	print("passed=%d failed=%d" % [passed, failed])
 	quit(1 if failed > 0 else 0)
@@ -339,6 +340,31 @@ func test_save(cfg: GameConfig) -> void:
 	check(SaveData.load_file(path).is_empty(), "tamper detected")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 	check(SaveData.load_file("user://nope.json").is_empty(), "missing file empty")
+
+
+func test_sfx_debug() -> void:
+	var sfx := SfxPlayer.new()
+	sfx._ready()  # 不掛進場景樹也能建立音效表
+	var list := sfx.sound_list()
+	check(list.size() == 20, "sfx: 20 tunable sounds")
+	var key := "tick/relay"
+	var before: int = sfx._wavs[key].data.size()
+	sfx.set_param(key, "dur_mult", 2.0)
+	check(absi(sfx._wavs[key].data.size() - before * 2) <= 4, "sfx: dur_mult doubles length")
+	sfx.set_param(key, "amp", 99.0)
+	check(is_equal_approx(sfx.get_params(key)["amp"], 1.5), "sfx: param clamped to range")
+	sfx.set_param(key, "shape", "bogus")
+	check(sfx.get_params(key)["shape"] == "sine", "sfx: invalid shape ignored")
+	check(sfx.export_changes().begins_with("tick/relay:"), "sfx: export lists changes")
+	sfx.reset_all_sounds()
+	check(sfx.export_changes() == "(與出廠值相同)", "sfx: reset restores factory values")
+	check(sfx._wavs[key].data.size() == before, "sfx: reset re-renders")
+	var pr := UserPrefs.new()
+	pr.game["mode"] = "junk"
+	var pr2 := UserPrefs.new()
+	pr2.from_dict(pr.to_dict())
+	check(pr2.game["mode"] == "normal", "prefs: invalid mode falls back")
+	sfx.free()
 
 
 func test_prefs(cfg: GameConfig) -> void:

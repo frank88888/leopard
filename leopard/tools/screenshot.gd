@@ -41,7 +41,15 @@ func _init() -> void:
 	st._begin_capture("start", "key", 0)
 	await _frames(2)
 	_shot(out + "/9_menu_capture.png")
+	st._show("mode")
+	await _frames(3)
+	_shot(out + "/9_menu_mode.png")
+	scene.prefs.game["mode"] = "debug"
 	st.close()
+	await _frames(3)
+	_shot(out + "/10_debug.png")
+	scene.prefs.game["mode"] = "normal"
+	scene.update_debug()
 	scene.backoffice.open()
 	scene.backoffice._pw_edit.text = scene.cfg.s["admin_password"]
 	scene.backoffice._try_login()

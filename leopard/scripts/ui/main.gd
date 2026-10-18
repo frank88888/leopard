@@ -20,6 +20,7 @@ var btn_collect: Button
 var btn_start: Button
 var backoffice: Backoffice
 var settings: SettingsMenu
+var debug_win: DebugWindow
 var prefs: UserPrefs
 var btn_settings: Button
 var coin_caption: Label
@@ -135,6 +136,10 @@ func _build_ui() -> void:
 	settings = SettingsMenu.new()
 	settings.visible = false
 	settings.setup(self)
+	debug_win = DebugWindow.new()
+	debug_win.visible = false
+	debug_win.setup(self)
+	add_child(debug_win)
 	add_child(settings)
 	backoffice = Backoffice.new()
 	backoffice.visible = false
@@ -202,6 +207,8 @@ func _input(event: InputEvent) -> void:
 	if not (event is InputEventMouseButton) or backoffice.visible or settings.visible:
 		return
 	var m := event as InputEventMouseButton
+	if debug_win.visible and debug_win.get_global_rect().has_point(m.position):
+		return
 	var id := prefs.bindings.action_for_mouse(m.button_index)
 	if id != "":
 		_do_action(id, m.pressed)
@@ -248,6 +255,13 @@ func apply_prefs() -> void:
 	if DisplayServer.window_get_mode() != mode:
 		DisplayServer.window_set_mode(mode)
 	_refresh_labels()
+	update_debug()
+
+
+## DEBUG 模式且設定選單已關閉時才顯示調整視窗。
+func update_debug() -> void:
+	if debug_win != null:
+		debug_win.visible = prefs.game["mode"] == "debug" and not settings.visible and not backoffice.visible
 
 
 ## 後台改「預設音量」時一併套用到玩家主音量。

@@ -10,6 +10,7 @@ const BET_STYLES := [["beep", "電子嗶聲"], ["click", "喀嗒"], ["chime", "�
 const COIN_STYLES := [["coin", "投幣聲"], ["ding", "單音叮"], ["drop", "落幣聲"], ["off", "無聲"]]
 const WIN_STYLES := [["bell", "鈴聲琶音"], ["arcade", "電玩琶音"], ["chime", "柔和和弦"], ["off", "無聲"]]
 const THEMES := [["blue", "藍色(預設)"], ["green", "綠色"], ["red", "紅色"], ["purple", "紫色"]]
+const MODES := [["normal", "正常"], ["debug", "DEBUG(顯示調整視窗)"]]
 const LED_SIZES := [["small", "小"], ["medium", "中"], ["large", "大"]]
 
 var audio: Dictionary = {}
@@ -39,7 +40,7 @@ func reset_section(name: String) -> void:
 		"display":
 			display = {"fullscreen": false, "theme": "blue", "led_size": "medium", "jackpot_flash": true, "key_hints": true}
 		"game":
-			game = {"anim_speed": 1.0}
+			game = {"anim_speed": 1.0, "mode": "normal"}
 		"controls":
 			bindings.reset()
 
@@ -94,6 +95,7 @@ func _sanitize() -> void:
 	audio["win"] = _pick(WIN_STYLES, audio["win"], "bell")
 	display["theme"] = _pick(THEMES, display["theme"], "blue")
 	display["led_size"] = _pick(LED_SIZES, display["led_size"], "medium")
+	game["mode"] = _pick(MODES, game["mode"], "normal")
 	game["anim_speed"] = clampf(float(game["anim_speed"]), 0.5, 2.0)
 
 

@@ -57,6 +57,7 @@ func setup(main_node: Control) -> void:
 func open() -> void:
 	prefs = main.prefs
 	visible = true
+	main.update_debug()
 	_show("root")
 
 
@@ -64,6 +65,7 @@ func close() -> void:
 	visible = false
 	_capture = {}
 	main._refresh()
+	main.update_debug()
 
 
 func _on_back() -> void:
@@ -121,6 +123,9 @@ func _rebuild() -> void:
 		"game":
 			_title.text = "設定 › 遊戲"
 			_build_game()
+		"mode":
+			_title.text = "設定 › 模式"
+			_build_mode()
 		"controls":
 			_title.text = "設定 › 輸入控制"
 			_build_controls()
@@ -151,6 +156,7 @@ func _build_root() -> void:
 		["display", "顯示", "全螢幕:%s" % ("開" if prefs.display["fullscreen"] else "關")],
 		["game", "遊戲", "動畫速度 ×%.1f" % prefs.game["anim_speed"]],
 		["controls", "輸入控制", "鍵盤 + 滑鼠 自訂按鍵"],
+		["mode", "模式", "DEBUG(調整視窗)" if prefs.game["mode"] == "debug" else "正常"],
 		["load", "讀取進度", "已存 %d / %d 欄" % [used, SaveSlots.COUNT]],
 		["save", "儲存進度", "CREDIT %d  WIN %d" % [main.game.credit, main.game.win]],
 		["reset", "還原預設值", "聲音 / 顯示 / 遊戲 / 按鍵"],
@@ -217,6 +223,15 @@ func _build_game() -> void:
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_content.add_child(note)
 	_reset_button("game", "還原遊戲預設")
+
+
+# ---------- 模式 ----------
+
+func _build_mode() -> void:
+	_cycle_row("執行模式", prefs.game, "mode", UserPrefs.MODES)
+	var note := _lbl("DEBUG 模式:關閉設定後會出現浮動的調整視窗,可在執行中用滑桿或直接輸入數值調整各音效(轉燈、押分、投幣、中獎…)的音高、長度、振幅、衰減、噪音、波形。視窗可拖曳;調整只影響本次執行,不會存檔,也不影響機率與結果。", 26, DIM)
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_content.add_child(note)
 
 
 # ---------- 輸入控制 ----------
