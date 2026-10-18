@@ -1,6 +1,6 @@
 class_name DebugWindow
-extends Panel
-## DEBUG 模式的浮動視窗:執行中即時調整各音效的合成參數(滑桿 + 直接輸入數值),可拖曳標題列移動。
+extends Window
+## DEBUG 模式的獨立視窗(作業系統視窗,不在遊戲畫面內):執行中即時調整各音效的合成參數(滑桿 + 直接輸入數值)。
 ## 調整只影響本次執行,不寫入存檔;「複製變更」可把與出廠值不同的參數貼出來。
 
 const TEXT := Color("e8e4ff")
@@ -15,7 +15,6 @@ var _rows: VBoxContainer
 var _picker: OptionButton
 var _auto_preview := true
 var _status: Label
-var _dragging := false
 var _sliders := {}
 var _spins := {}
 var _shape_opt: OptionButton
@@ -24,37 +23,26 @@ var _shape_opt: OptionButton
 func setup(main_node: Control) -> void:
 	main = main_node
 	sfx = main.sfx
-	position = Vector2(30, 520)
-	size = Vector2(1020, 840)
-	mouse_filter = Control.MOUSE_FILTER_STOP
+	title = "DEBUG ‧ 音效參數"
+	size = Vector2i(1020, 840)
+	min_size = Vector2i(760, 700)
+	initial_position = Window.WINDOW_INITIAL_POSITION_CENTER_PRIMARY_SCREEN
+	close_requested.connect(hide)
+	var panel := Panel.new()
+	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.07, 0.06, 0.16, 0.96)
-	sb.border_color = GOLD
-	sb.set_border_width_all(3)
-	sb.set_corner_radius_all(14)
-	add_theme_stylebox_override("panel", sb)
+	sb.bg_color = Color(0.07, 0.06, 0.16, 1.0)
+	panel.add_theme_stylebox_override("panel", sb)
+	add_child(panel)
 
 	var box := VBoxContainer.new()
 	box.set_anchors_preset(Control.PRESET_FULL_RECT)
 	box.offset_left = 20
 	box.offset_right = -20
-	box.offset_top = 12
+	box.offset_top = 16
 	box.offset_bottom = -14
 	box.add_theme_constant_override("separation", 10)
-	add_child(box)
-
-	# 標題列(可拖曳)
-	var bar := HBoxContainer.new()
-	bar.mouse_filter = Control.MOUSE_FILTER_STOP
-	bar.gui_input.connect(_on_bar_input)
-	box.add_child(bar)
-	var title := _lbl("DEBUG ‧ 音效參數(拖曳此列移動)", 30, GOLD)
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	bar.add_child(title)
-	var hide_b := _btn("收起", Vector2(110, 52), 26)
-	hide_b.pressed.connect(func(): visible = false)
-	bar.add_child(hide_b)
+	panel.add_child(box)
 
 	# 音效選擇
 	var sel := HBoxContainer.new()
@@ -220,14 +208,6 @@ func _style_bar(sl: HSlider) -> void:
 func _after_change() -> void:
 	if _auto_preview:
 		sfx.preview(_key)
-
-
-func _on_bar_input(e: InputEvent) -> void:
-	if e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_LEFT:
-		_dragging = e.pressed
-	elif e is InputEventMouseMotion and _dragging:
-		position += e.relative
-		position = position.clamp(Vector2(-size.x + 120, 0), get_viewport_rect().size - Vector2(120, 60))
 
 
 func _row(label: String) -> HBoxContainer:

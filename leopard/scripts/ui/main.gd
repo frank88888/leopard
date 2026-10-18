@@ -23,6 +23,7 @@ var settings: SettingsMenu
 var debug_win: DebugWindow
 var prefs: UserPrefs
 var btn_settings: Button
+var btn_debug: Button
 var coin_caption: Label
 var anim_rng := RandomNumberGenerator.new()
 
@@ -36,6 +37,7 @@ var _msg_sticky := false  ## 中央訊息為暫時性文字時,不被待機提�
 
 
 func _ready() -> void:
+	get_window().gui_embed_subwindows = false  # DEBUG 視窗要是獨立的作業系統視窗
 	anim_rng.randomize()
 	cfg = GameConfig.load_default(true)
 	game = GameState.new(cfg)
@@ -86,6 +88,10 @@ func _build_ui() -> void:
 	btn_settings = _button("設定", Rect2(270, 6, 120, 50), 26)
 	btn_settings.focus_mode = Control.FOCUS_NONE
 	btn_settings.pressed.connect(func(): settings.open())
+	btn_debug = _button("Debug", Rect2(150, 6, 110, 50), 24)
+	btn_debug.focus_mode = Control.FOCUS_NONE
+	btn_debug.visible = false
+	btn_debug.pressed.connect(func(): debug_win.visible = not debug_win.visible)
 
 	# 跑燈環
 	ring_view = RingView.new()
@@ -207,8 +213,6 @@ func _input(event: InputEvent) -> void:
 	if not (event is InputEventMouseButton) or backoffice.visible or settings.visible:
 		return
 	var m := event as InputEventMouseButton
-	if debug_win.visible and debug_win.get_global_rect().has_point(m.position):
-		return
 	var id := prefs.bindings.action_for_mouse(m.button_index)
 	if id != "":
 		_do_action(id, m.pressed)
@@ -258,10 +262,13 @@ func apply_prefs() -> void:
 	update_debug()
 
 
-## DEBUG 模式且設定選單已關閉時才顯示調整視窗。
+## DEBUG 模式才顯示 Debug 按鈕;按鈕開關獨立的調整視窗,離開 DEBUG 模式時視窗一併關閉。
 func update_debug() -> void:
-	if debug_win != null:
-		debug_win.visible = prefs.game["mode"] == "debug" and not settings.visible and not backoffice.visible
+	var on: bool = prefs.game["mode"] == "debug"
+	if btn_debug != null:
+		btn_debug.visible = on
+	if debug_win != null and not on:
+		debug_win.visible = false
 
 
 ## 後台改「預設音量」時一併套用到玩家主音量。

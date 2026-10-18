@@ -48,6 +48,11 @@ func _init() -> void:
 	st.close()
 	await _frames(3)
 	_shot(out + "/10_debug.png")
+	scene.btn_debug.pressed.emit()  # 獨立視窗開關煙霧測試(視窗不在主畫面截圖內)
+	await _frames(5)
+	print("debug window visible: ", scene.debug_win.visible)
+	scene.btn_debug.pressed.emit()
+	await _frames(2)
 	scene.prefs.game["mode"] = "normal"
 	scene.update_debug()
 	scene.backoffice.open()
