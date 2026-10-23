@@ -54,11 +54,11 @@ func setup(main_node: Control) -> void:
 	box.add_child(_back)
 
 
-func open() -> void:
+func open(page := "root") -> void:
 	prefs = main.prefs
 	visible = true
 	main.update_debug()
-	_show("root")
+	_show(page)
 
 
 func close() -> void:

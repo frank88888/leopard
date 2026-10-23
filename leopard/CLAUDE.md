@@ -12,7 +12,7 @@ Godot is not on PATH; a copy lives at `C:\Users\frank\tools\godot\Godot_v4.4.1-s
 $G --headless --path . --import                                     # needed once after adding new class_name scripts
 $G --headless --path . -s tests/run_tests.gd                        # all tests (custom runner, no GUT); exit code 1 on failure
 $G --headless --path . -s tools/simulate_rtp.gd -- 1000000 all      # RTP simulation: all | single | random
-$G --path . --resolution 540x720 -s tools/screenshot.gd -- <dir>    # windowed; scripted playthrough → PNGs (writes then deletes user://save.json)
+$G --path . --resolution 540x748 -s tools/screenshot.gd -- <dir>    # windowed; scripted playthrough → PNGs (writes then deletes user://save.json)
 ```
 
 There is no single-test flag: edit the calls in `_init()` of `tests/run_tests.gd`.

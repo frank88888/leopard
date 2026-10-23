@@ -22,9 +22,8 @@ var backoffice: Backoffice
 var settings: SettingsMenu
 var debug_win: DebugWindow
 var prefs: UserPrefs
-var btn_settings: Button
-var btn_debug: Button
-var coin_caption: Label
+var menu_bar: TopMenuBar
+var debug_menu := -1
 var anim_rng := RandomNumberGenerator.new()
 
 var busy := false  ## 動畫進行中,鎖住操作
@@ -78,21 +77,6 @@ func _build_ui() -> void:
 	win_label = _number_label(Vector2(30, 36), 380, HORIZONTAL_ALIGNMENT_LEFT)
 	_caption("CREDIT", Vector2(700, 8), 28, Color("6fe0ff"), 350, HORIZONTAL_ALIGNMENT_RIGHT)
 	credit_label = _number_label(Vector2(700, 36), 350, HORIZONTAL_ALIGNMENT_RIGHT)
-	var coin_vals := [1, 5, 10, 50]
-	for k in 4:
-		var b := _button("+%d" % coin_vals[k], Rect2(400 + k * 70, 60, 64, 56), 26)
-		var v: int = coin_vals[k]
-		b.pressed.connect(func(): _insert_coin(v))
-		b.focus_mode = Control.FOCUS_NONE
-	coin_caption = _caption("投幣", Vector2(400, 30), 22, Color("8880b0"), 280)
-	btn_settings = _button("設定", Rect2(270, 6, 120, 50), 26)
-	btn_settings.focus_mode = Control.FOCUS_NONE
-	btn_settings.pressed.connect(func(): settings.open())
-	btn_debug = _button("Debug", Rect2(150, 6, 110, 50), 24)
-	btn_debug.focus_mode = Control.FOCUS_NONE
-	btn_debug.visible = false
-	btn_debug.pressed.connect(func(): debug_win.visible = not debug_win.visible)
-
 	# 跑燈環
 	ring_view = RingView.new()
 	ring_view.position = Vector2(92, 150)
@@ -139,6 +123,12 @@ func _build_ui() -> void:
 	btn_collect.pressed.connect(_on_collect)
 	btn_start.pressed.connect(_on_start)
 
+	# 選單列佔最上方一條,其餘畫面整體下移
+	for c in get_children():
+		if c != bg and c is Control:
+			c.position.y += TopMenuBar.H
+	_build_menu_bar()
+
 	settings = SettingsMenu.new()
 	settings.visible = false
 	settings.setup(self)
@@ -151,6 +141,30 @@ func _build_ui() -> void:
 	backoffice.visible = false
 	backoffice.setup(self)
 	add_child(backoffice)
+
+
+func _build_menu_bar() -> void:
+	menu_bar = TopMenuBar.new()
+	menu_bar.setup(1080.0, 1440.0 + TopMenuBar.H)
+	add_child(menu_bar)
+	menu_bar.add_menu("遊戲", func() -> Array: return [
+		["設定…" + _hint_suffix("Esc"), func(): settings.open(), true],
+		["讀取進度…", func(): settings.open("load"), true],
+		["儲存進度…", func(): settings.open("save"), true],
+	])
+	menu_bar.add_menu("投幣", func() -> Array:
+		var items: Array = []
+		for v in [1, 5, 10, 50]:
+			items.append(["+%d%s" % [v, _hint_suffix(prefs.bindings.hint("coin_%d" % v))], _insert_coin.bind(v), true])
+		return items)
+	debug_menu = menu_bar.add_menu("Debug", func() -> Array: return [
+		["關閉 Debug 視窗" if debug_win.visible else "開啟 Debug 視窗", func(): debug_win.visible = not debug_win.visible, true],
+	])
+	menu_bar.set_menu_visible(debug_menu, false)
+
+
+func _hint_suffix(h: String) -> String:
+	return "    (%s)" % h if h != "" and prefs.display["key_hints"] else ""
 
 
 func _caption(text: String, pos: Vector2, fsize: int, col: Color, w := 300.0, align := HORIZONTAL_ALIGNMENT_LEFT) -> Label:
@@ -262,11 +276,11 @@ func apply_prefs() -> void:
 	update_debug()
 
 
-## DEBUG 模式才顯示 Debug 按鈕;按鈕開關獨立的調整視窗,離開 DEBUG 模式時視窗一併關閉。
+## DEBUG 模式才顯示 Debug 選單;離開 DEBUG 模式時調整視窗一併關閉。
 func update_debug() -> void:
 	var on: bool = prefs.game["mode"] == "debug"
-	if btn_debug != null:
-		btn_debug.visible = on
+	if menu_bar != null:
+		menu_bar.set_menu_visible(debug_menu, on)
 	if debug_win != null and not on:
 		debug_win.visible = false
 
@@ -290,14 +304,6 @@ func _refresh_labels() -> void:
 	btn_small.text = _labeled("小", "small")
 	btn_big.text = _labeled("大", "big")
 	btn_collect.text = _labeled("收分", "collect")
-	btn_settings.text = "設定"
-	var hints: Array[String] = []
-	if prefs.display["key_hints"]:
-		for id in ["coin_1", "coin_5", "coin_10", "coin_50"]:
-			var h := prefs.bindings.hint(id)
-			if h != "":
-				hints.append(h)
-	coin_caption.text = "投幣 " + "/".join(hints) if hints.size() > 0 else "投幣"
 	_refresh()
 
 

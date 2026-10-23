@@ -30,7 +30,7 @@
 
 ## 3. 畫面佈局(由上到下)
 
-建議邏輯解析度 **1080×1440(3:4 直式)**,可等比縮放。
+建議邏輯解析度 **1080×1496(含最上方 56px 選單列;遊戲區 1080×1440)**,可等比縮放。
 
 ```
 ┌──────────────────────────────┐
@@ -375,5 +375,5 @@ leopard/
 godot --headless --path . -s tests/run_tests.gd                         # 單元測試
 godot --headless --path . -s tools/simulate_rtp.gd -- 1000000 all       # RTP 模擬 (all|single|random)
 godot --path .                                                          # 執行遊戲
-godot --path . --resolution 540x720 -s tools/screenshot.gd -- <資料夾>  # 開發用截圖
+godot --path . --resolution 540x748 -s tools/screenshot.gd -- <資料夾>  # 開發用截圖
 ```
