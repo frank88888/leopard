@@ -1,0 +1,30 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Godot: 執行遊戲",
+            "type": "PowerShell",
+            "request": "launch",
+            "script": "${workspaceFolder}/.vscode/run-godot.ps1",
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Godot: 執行測試",
+            "type": "PowerShell",
+            "request": "launch",
+            "script": "${workspaceFolder}/.vscode/run-godot.ps1",
+            "args": ["--headless", "-s", "tests/run_tests.gd"],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Godot: GDScript 偵錯 (需 godot-tools)",
+            "type": "godot",
+            "request": "launch",
+            "project": "${workspaceFolder}",
+            "address": "127.0.0.1",
+            "port": 6007,
+            "additional_options": ""
+        }
+    ]
+}
