@@ -12,6 +12,8 @@ const WIN_STYLES := [["bell", "鈴聲琶音"], ["arcade", "電玩琶音"], ["chi
 const THEMES := [["blue", "藍色(預設)"], ["green", "綠色"], ["red", "紅色"], ["purple", "紫色"]]
 const MODES := [["normal", "正常"], ["debug", "DEBUG(顯示調整視窗)"]]
 const LED_SIZES := [["small", "小"], ["medium", "中"], ["large", "大"]]
+const SKINS := [["fruit", "水果(預設)"], ["chess", "象棋"]]
+const DOUBLE_STYLES := [["auto", "跟隨主題"], ["dice", "擲骰比大小"], ["banqi", "翻暗棋"]]
 
 var audio: Dictionary = {}
 var display: Dictionary = {}
@@ -38,11 +40,19 @@ func reset_section(name: String) -> void:
 		"audio":
 			audio = {"master": _master_default, "mute": false, "tick": "relay", "tick_pitch": 1.0, "bet": "beep", "coin": "coin", "win": "bell"}
 		"display":
-			display = {"fullscreen": false, "theme": "blue", "led_size": "medium", "jackpot_flash": true, "key_hints": true}
+			display = {"fullscreen": false, "skin": "fruit", "theme": "blue", "led_size": "medium", "jackpot_flash": true, "key_hints": true}
 		"game":
-			game = {"anim_speed": 1.0, "mode": "normal"}
+			game = {"anim_speed": 1.0, "mode": "normal", "double_style": "auto"}
 		"controls":
 			bindings.reset()
+
+
+## 實際的比大小玩法:「跟隨主題」時象棋主題用翻暗棋,其餘用骰子。
+func resolved_double_style() -> String:
+	var st: String = game["double_style"]
+	if st == "auto":
+		return "banqi" if display["skin"] == "chess" else "dice"
+	return st
 
 
 static func choices(list: Array) -> Array:
@@ -93,9 +103,11 @@ func _sanitize() -> void:
 	audio["bet"] = _pick(BET_STYLES, audio["bet"], "beep")
 	audio["coin"] = _pick(COIN_STYLES, audio["coin"], "coin")
 	audio["win"] = _pick(WIN_STYLES, audio["win"], "bell")
+	display["skin"] = _pick(SKINS, display["skin"], "fruit")
 	display["theme"] = _pick(THEMES, display["theme"], "blue")
 	display["led_size"] = _pick(LED_SIZES, display["led_size"], "medium")
 	game["mode"] = _pick(MODES, game["mode"], "normal")
+	game["double_style"] = _pick(DOUBLE_STYLES, game["double_style"], "auto")
 	game["anim_speed"] = clampf(float(game["anim_speed"]), 0.5, 2.0)
 
 

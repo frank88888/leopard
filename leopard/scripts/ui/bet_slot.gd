@@ -36,6 +36,10 @@ func setup(i: int, symbol_id: String, multiplier: int) -> void:
 	add_child(icon)
 
 
+func set_skin(id: String) -> void:
+	icon.skin = id
+
+
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:

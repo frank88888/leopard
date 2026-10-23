@@ -22,6 +22,7 @@ var win := 0
 var phase: int = Phase.IDLE
 var last_stop := 0  ## 上局停止格(第一局為 0 = BAR)
 var du_count := 0  ## 本次得分已連續猜對次數
+var double_style := "dice"  ## 比大小玩法:DoubleUp.STYLES(玩家偏好,由 UI 設定)
 var round_data: Dictionary = {}  ## 進行中 / 最近一局
 
 
@@ -177,13 +178,25 @@ func can_double() -> bool:
 	return phase == Phase.WIN_PENDING and win > 0 and du_count < int(cfg.s["double_up_max"]) and win < int(cfg.s["win_cap"])
 
 
-## guess: DoubleUp.Guess。回傳 {dice, total, result, win}
+## guess: DoubleUp.Guess。
+## 回傳 {style, result, win},dice 另含 {dice, total},banqi 另含 {pieces:[左,右], mine, theirs}。
 func double_up(guess: int) -> Dictionary:
 	if not can_double():
 		return {}
-	var dice := DoubleUp.roll(rng)
-	var total: int = dice[0] + dice[1]
-	var res := DoubleUp.judge(guess, total)
+	var info := {"style": double_style}
+	var res: int
+	if double_style == "banqi":
+		var pieces := DoubleUp.draw_pair(rng)
+		var pick := 0 if guess == DoubleUp.Guess.SMALL else 1
+		info["pieces"] = pieces
+		info["mine"] = pieces[pick]
+		info["theirs"] = pieces[1 - pick]
+		res = DoubleUp.judge_banqi(pieces[pick], pieces[1 - pick])
+	else:
+		var dice := DoubleUp.roll(rng)
+		info["dice"] = dice
+		info["total"] = dice[0] + dice[1]
+		res = DoubleUp.judge(guess, info["total"])
 	match res:
 		DoubleUp.Result.WIN:
 			win = mini(win * 2, int(cfg.s["win_cap"]))
@@ -194,7 +207,8 @@ func double_up(guess: int) -> Dictionary:
 			du_count = 0
 			phase = Phase.IDLE
 			acct.add("du_lose", 1)
-	var info := {"dice": dice, "total": total, "result": res, "win": win}
+	info["result"] = res
+	info["win"] = win
 	changed.emit()
 	doubled.emit(info)
 	return info

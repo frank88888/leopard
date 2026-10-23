@@ -13,6 +13,8 @@ var rest_cell := -1  ## 待機時持續亮著的格(上局停止格)
 var led_scale := 1.0  ## 跑燈 LED 大小倍率
 var theme_fill := Color("1a3fa8")  ## 中央底板顏色
 var theme_edge := Color("0a1f6a")
+var skin := "fruit"
+var icons: Array[SymbolIcon] = []
 var _t := 0.0
 
 const THEME_COLORS := {
@@ -37,6 +39,7 @@ func setup(ring_cells: Array[int], symbol_ids: Array[String]) -> void:
 		icon.position = p.position + Vector2(8, 8)
 		icon.size = p.size - Vector2(16, 16)
 		add_child(icon)
+		icons.append(icon)
 
 
 func cell_rect(i: int) -> Rect2:
@@ -48,6 +51,13 @@ func set_theme_name(id: String) -> void:
 	var c: Array = THEME_COLORS.get(id, THEME_COLORS["blue"])
 	theme_fill = Color(c[0])
 	theme_edge = Color(c[1])
+
+
+func set_skin(id: String) -> void:
+	skin = id
+	for icon in icons:
+		icon.skin = id
+	queue_redraw()
 
 
 func light(i: int) -> void:
@@ -74,6 +84,8 @@ func _draw() -> void:
 	# 中央藍色底板(參考機台風格)
 	draw_rect(Rect2(Vector2(CELL, CELL), Vector2(CELL * 5, CELL * 5)), theme_fill)
 	draw_rect(Rect2(Vector2(CELL, CELL), Vector2(CELL * 5, CELL * 5)), theme_edge, false, 6.0)
+	if skin == "chess":
+		_draw_board(Rect2(Vector2(CELL, CELL), Vector2(CELL * 5, CELL * 5)).grow(-CELL * 0.35))
 	for i in glow.size():
 		var r := cell_rect(i).grow(-3)
 		draw_rect(r, Color("f4f1e6"))
@@ -104,6 +116,33 @@ func _draw() -> void:
 	if jackpot_flash > 0.0:
 		var a := 0.5 * jackpot_flash * (1.0 if blink else 0.4)
 		draw_rect(Rect2(Vector2.ZERO, size), Color(1, 0.9, 0.3, a))
+
+
+## 象棋主題:中央底板淡淡畫一張棋盤(9 直線 × 10 橫線,中間楚河漢界)。
+func _draw_board(r: Rect2) -> void:
+	var col := Color(1, 1, 1, 0.22)
+	var dx := r.size.x / 8.0
+	var dy := r.size.y / 9.0
+	for k in 10:
+		var y := r.position.y + dy * k
+		draw_line(Vector2(r.position.x, y), Vector2(r.end.x, y), col, 2.0)
+	for k in 9:
+		var x := r.position.x + dx * k
+		if k == 0 or k == 8:
+			draw_line(Vector2(x, r.position.y), Vector2(x, r.end.y), col, 2.0)
+		else:
+			draw_line(Vector2(x, r.position.y), Vector2(x, r.position.y + dy * 4), col, 2.0)
+			draw_line(Vector2(x, r.position.y + dy * 5), Vector2(x, r.end.y), col, 2.0)
+	for top in [r.position.y, r.position.y + dy * 7]:  # 九宮斜線
+		var a := Vector2(r.position.x + dx * 3, top)
+		draw_line(a, a + Vector2(dx * 2, dy * 2), col, 2.0)
+		draw_line(a + Vector2(dx * 2, 0), a + Vector2(0, dy * 2), col, 2.0)
+	var font := ThemeDB.fallback_font
+	var fs := int(dy * 0.6)
+	var ty := r.position.y + dy * 4.5 + fs * 0.36
+	for e in [["楚 河", 0.25], ["漢 界", 0.75]]:
+		var w := font.get_string_size(e[0], HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		draw_string(font, Vector2(r.position.x + r.size.x * e[1] - w / 2.0, ty), e[0], HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1, 1, 1, 0.3))
 
 
 ## 圓角方形 LED(非正方形)。

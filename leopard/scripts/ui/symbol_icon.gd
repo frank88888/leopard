@@ -1,10 +1,29 @@
 class_name SymbolIcon
 extends Control
 ## 以向量方式繪製 8 種圖案與 LUCK(自製素材,無版權問題;日後可整批換成 sprites)。
+## skin = "chess" 時改畫象棋棋子(符號 id 不變,只換外觀)。
+
+## 象棋主題:符號 id → 棋子代碼(DoubleUp 的 side * 7 + rank),紅黑交錯。
+const CHESS_PIECES := {
+	"bar": 0,  # 帥
+	"s77": 8,  # 士
+	"star": 2,  # 相
+	"melon": 10,  # 車
+	"bell": 4,  # 傌
+	"green": 12,  # 包
+	"orange": 6,  # 兵
+	"lychee": 13,  # 卒
+}
+const RED := Color("c8141e")
+const BLACK := Color("1a1a1a")
 
 var symbol_id := "bar":
 	set(v):
 		symbol_id = v
+		queue_redraw()
+var skin := "fruit":
+	set(v):
+		skin = v
 		queue_redraw()
 var dim := 1.0:
 	set(v):
@@ -22,6 +41,9 @@ func _draw() -> void:
 	if s <= 0.0:
 		return
 	var c := size / 2.0
+	if skin == "chess":
+		_chess(c, s)
+		return
 	match symbol_id:
 		"bar": _bar(c, s)
 		"s77": _seven(c, s)
@@ -134,3 +156,31 @@ func _luck(c: Vector2, s: float) -> void:
 	_ellipse(c, Vector2(s * 0.4, s * 0.4), Color("7a2fd0"))
 	_ellipse(c, Vector2(s * 0.33, s * 0.33), Color("a860ff"))
 	_text("LUCK", c, int(s * 0.24), Color("ffffff"), Color("3a0a70"))
+
+
+# ---------- 象棋主題 ----------
+
+func _chess(c: Vector2, s: float) -> void:
+	if symbol_id == "luck":
+		draw_piece(self, c, s * 0.44, "將軍", Color("8a1a8a"), dim, Color("ffd84a"))
+		return
+	var p: int = CHESS_PIECES.get(symbol_id, 0)
+	draw_piece(self, c, s * 0.44, DoubleUp.piece_name(p), RED if DoubleUp.side_of(p) == 0 else BLACK, dim)
+
+
+## 畫一枚圓形棋子。text 為空字串時畫棋子背面(暗棋蓋著)。
+static func draw_piece(ci: CanvasItem, c: Vector2, r: float, text: String, ink: Color, dim := 1.0, face := Color("efd29a")) -> void:
+	var d := func(col: Color) -> Color: return Color(col.r * dim, col.g * dim, col.b * dim, col.a)
+	ci.draw_circle(c + Vector2(0, r * 0.08), r, d.call(Color(0, 0, 0, 0.35)))  # 陰影
+	ci.draw_circle(c, r, d.call(Color("a8743a")))  # 側邊
+	ci.draw_circle(c, r * 0.92, d.call(face))
+	if text == "":
+		ci.draw_arc(c, r * 0.6, 0.0, TAU, 40, d.call(Color("a8743a")), maxf(2.0, r * 0.05), true)
+		ci.draw_arc(c, r * 0.3, 0.0, TAU, 32, d.call(Color("a8743a")), maxf(2.0, r * 0.05), true)
+		return
+	ci.draw_arc(c, r * 0.78, 0.0, TAU, 48, d.call(ink), maxf(2.0, r * 0.06), true)
+	var font := ThemeDB.fallback_font
+	var fsize := int(r * (1.05 if text.length() == 1 else 0.62))
+	var w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize)
+	var pos := c + Vector2(-w.x / 2.0, fsize * 0.36)
+	ci.draw_string(font, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize, d.call(ink))

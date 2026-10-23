@@ -275,6 +275,51 @@ func test_double_up(cfg: GameConfig) -> void:
 	g.du_count = 0
 	g.win = 9999
 	check(not g.can_double(), "win cap reached")
+	test_banqi(cfg)
+
+
+func test_banqi(cfg: GameConfig) -> void:
+	print("banqi double up")
+	var pool := DoubleUp.banqi_pool()
+	check(pool.size() == 32, "banqi pool has 32 pieces")
+	check(pool.count(6) == 5 and pool.count(13) == 5 and pool.count(0) == 1 and pool.count(7) == 1, "5 soldiers / 1 general per side")
+	check(DoubleUp.piece_name(0) == "帥" and DoubleUp.piece_name(7) == "將" and DoubleUp.piece_name(12) == "包", "piece names")
+	check(DoubleUp.beats(6, 0) and not DoubleUp.beats(0, 6), "soldier beats general, not the reverse")
+	check(DoubleUp.beats(0, 1) and DoubleUp.beats(5, 6) and not DoubleUp.beats(3, 3), "rank order, equal never beats")
+	check(DoubleUp.judge_banqi(0, 7) == DoubleUp.Result.PUSH, "red vs black same rank is push")
+	# 所有有序抽法(不放回):勝負次數必須相等 → 期望值 0
+	var w := 0
+	var l := 0
+	var p := 0
+	for a in pool.size():
+		for b in pool.size():
+			if a == b:
+				continue
+			match DoubleUp.judge_banqi(pool[a], pool[b]):
+				DoubleUp.Result.WIN: w += 1
+				DoubleUp.Result.LOSE: l += 1
+				_: p += 1
+	check(w == l, "banqi win count == lose count (%d / %d)" % [w, l])
+	check(p == 152, "banqi push count 152 / 992")
+	var g := GameState.new(cfg, 21)
+	g.double_style = "banqi"
+	var seen := {}
+	for i in 300:
+		g.win = 100
+		g.phase = GameState.Phase.WIN_PENDING
+		g.du_count = 0
+		var guess := DoubleUp.Guess.SMALL if i % 2 == 0 else DoubleUp.Guess.BIG
+		var r := g.double_up(guess)
+		var pieces: Array = r["pieces"]
+		check(r["style"] == "banqi" and pieces.size() == 2, "banqi info shape")
+		check(r["mine"] == pieces[0 if guess == DoubleUp.Guess.SMALL else 1] and r["theirs"] == pieces[1 if guess == DoubleUp.Guess.SMALL else 0], "guess picks left / right")
+		check(r["result"] == DoubleUp.judge_banqi(r["mine"], r["theirs"]), "banqi result matches judge")
+		match r["result"]:
+			DoubleUp.Result.WIN: check(g.win == 200, "banqi win doubles")
+			DoubleUp.Result.LOSE: check(g.win == 0 and g.phase == GameState.Phase.IDLE, "banqi lose zeroes")
+			_: check(g.win == 100, "banqi push keeps")
+		seen[r["result"]] = true
+	check(seen.size() == 3, "banqi: win, lose and push all occur")
 
 
 func test_hold() -> void:
@@ -409,6 +454,14 @@ func test_prefs(cfg: GameConfig) -> void:
 	p.reset_section("audio")
 	check(is_equal_approx(p.audio["master"], 0.8) and p.display["theme"] == "green", "reset one section only")
 	check(UserPrefs.load_file("user://nope.json", 0.6).audio["master"] == 0.6, "missing prefs → default master")
+	var sk := UserPrefs.new(0.8)
+	check(sk.display["skin"] == "fruit" and sk.resolved_double_style() == "dice", "default skin fruit + dice")
+	sk.display["skin"] = "chess"
+	check(sk.resolved_double_style() == "banqi", "auto: chess skin → banqi")
+	sk.game["double_style"] = "dice"
+	check(sk.resolved_double_style() == "dice", "explicit double style wins over skin")
+	sk.from_dict({"display": {"skin": "nope"}, "game": {"double_style": "nope"}})
+	check(sk.display["skin"] == "fruit" and sk.game["double_style"] == "auto", "invalid skin / double style fall back")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 
 	# 存檔欄位

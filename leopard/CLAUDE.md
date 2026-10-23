@@ -26,6 +26,7 @@ There is no single-test flag: edit the calls in `_init()` of `tests/run_tests.gd
 - `scripts/ui/main.gd` builds the whole UI in code (`scenes/main.tscn` is just a root Control) and drives animation with `await` loops; `hud_lock` freezes HUD numbers during count-up animations, `busy` locks input.
 - Config: `config/*.json` are factory defaults; back-office edits go to `user://overrides.json` (checksummed via `SaveData`). Save payload is stored as a string inside the JSON so the SHA-256 survives int/float round-tripping.
 - Art and audio are generated in code (`symbol_icon.gd`, `sfx_player.gd`); there are no external assets.
+- Skins (fruit / chess) are purely visual: `SymbolIcon.skin` maps the same symbol ids to chess pieces. Double-up has two styles (`GameState.double_style`: dice / banqi, SPEC 9.1). The UI sets the style from player prefs (`UserPrefs.resolved_double_style()`), so core tests set it directly.
 
 ## GDScript gotchas seen here
 

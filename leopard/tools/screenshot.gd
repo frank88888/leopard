@@ -29,6 +29,22 @@ func _init() -> void:
 		_shot(out + "/5_double.png")
 	while scene.busy:
 		await _frames(1)
+	# 象棋主題 + 翻暗棋(只改記憶體中的偏好,不寫入 prefs.json)
+	scene.prefs.display["skin"] = "chess"
+	scene.apply_prefs()
+	scene.game.win = 100
+	scene.game.du_count = 0
+	scene.game.phase = GameState.Phase.WIN_PENDING
+	scene._refresh()
+	await _frames(3)
+	_shot(out + "/13_chess.png")
+	scene._on_guess(DoubleUp.Guess.SMALL)
+	await _secs(2.0)
+	_shot(out + "/14_banqi.png")
+	while scene.busy:
+		await _frames(1)
+	scene.prefs.display["skin"] = "fruit"
+	scene.apply_prefs()
 	var st: SettingsMenu = scene.settings
 	st.open()
 	await _frames(3)

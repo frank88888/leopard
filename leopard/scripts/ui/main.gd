@@ -14,6 +14,7 @@ var win_label: Label
 var credit_label: Label
 var center_label: Label
 var dice_view: DiceView
+var banqi_view: BanqiView
 var btn_small: Button
 var btn_big: Button
 var btn_collect: Button
@@ -98,6 +99,10 @@ func _build_ui() -> void:
 	dice_view.position = Vector2(268, 520)
 	dice_view.visible = false
 	ring_view.add_child(dice_view)
+	banqi_view = BanqiView.new()
+	banqi_view.position = Vector2(268, 510)
+	banqi_view.visible = false
+	ring_view.add_child(banqi_view)
 
 	# 押注視窗
 	for i in cfg.symbol_count():
@@ -268,6 +273,14 @@ func apply_prefs() -> void:
 		sfx.set_style(cat, a[cat])
 	var d := prefs.display
 	ring_view.set_theme_name(d["theme"])
+	ring_view.set_skin(d["skin"])
+	for sl in slots:
+		sl.set_skin(d["skin"])
+	var style := prefs.resolved_double_style()
+	if style != game.double_style:
+		game.double_style = style
+		_hide_double_views()
+		_msg_sticky = false
 	ring_view.led_scale = RingView.LED_SCALES[d["led_size"]]
 	var mode := DisplayServer.WINDOW_MODE_FULLSCREEN if d["fullscreen"] else DisplayServer.WINDOW_MODE_WINDOWED
 	if DisplayServer.window_get_mode() != mode:
@@ -300,9 +313,18 @@ func _labeled(base: String, id: String) -> String:
 	return "%s (%s)" % [base, h] if h != "" else base
 
 
+func _banqi() -> bool:
+	return game.double_style == "banqi"
+
+
+func _hide_double_views() -> void:
+	dice_view.visible = false
+	banqi_view.visible = false
+
+
 func _refresh_labels() -> void:
-	btn_small.text = _labeled("小", "small")
-	btn_big.text = _labeled("大", "big")
+	btn_small.text = _labeled("翻左" if _banqi() else "小", "small")
+	btn_big.text = _labeled("翻右" if _banqi() else "大", "big")
 	btn_collect.text = _labeled("收分", "collect")
 	_refresh()
 
@@ -333,7 +355,7 @@ func load_from_slot(i: int, with_prefs: bool) -> bool:
 	hud_lock = false
 	shown_win = game.win
 	shown_credit = game.credit
-	dice_view.visible = false
+	_hide_double_views()
 	ring_view.clear_lights()
 	ring_view.light(game.last_stop)
 	_clear_message()
@@ -422,7 +444,7 @@ func _idle_hint() -> void:
 	elif game.bets.total() > 0:
 		center_label.text = "按啟動開始"
 	elif game.win > 0:
-		center_label.text = "得分 %d\n比大小或收分" % game.win
+		center_label.text = "得分 %d\n%s或收分" % [game.win, "翻棋" if _banqi() else "比大小"]
 	else:
 		center_label.text = "請押注"
 
@@ -447,7 +469,7 @@ func _on_start() -> void:
 	if busy or game.phase == GameState.Phase.SPINNING:
 		return
 	busy = true
-	dice_view.visible = false
+	_hide_double_views()
 	if game.win > 0:
 		await _do_collect()  # 已確認:WIN > 0 時按啟動 → 先自動收分
 	busy = false
@@ -584,7 +606,7 @@ func _do_collect() -> void:
 	var amount := game.collect()
 	await _count(w, 0, c0, c0 + amount)
 	hud_lock = false
-	dice_view.visible = false
+	_hide_double_views()
 	_clear_message()
 	_refresh()
 
@@ -598,7 +620,35 @@ func _on_guess(g: int) -> void:
 	shown_win = w0
 	shown_credit = game.credit
 	var info := game.double_up(g)  # 結果先決定,動畫只是呈現
+	var head := ""
+	if info["style"] == "banqi":
+		head = await _play_banqi(info, g)
+	else:
+		head = await _play_dice(info)
+	match info["result"]:
+		DoubleUp.Result.WIN:
+			sfx.play("du_win")
+			_message("%s  猜對!\nWIN %d" % [head, info["win"]])
+		DoubleUp.Result.LOSE:
+			sfx.play("du_lose")
+			_message("%s  猜錯\nWIN 歸零" % head)
+		_:
+			_message("%s  和局\n%s" % [head, "可再翻" if _banqi() else "可再猜"])
+	await _wait(1.2)
+	hud_lock = false
+	if game.win == 0:
+		_hide_double_views()
+		_clear_message()
+	busy = false
+	_refresh()
+	if game.win > 0:
+		center_label.text = "WIN %d\n%s" % [game.win, "再翻或收分" if _banqi() else "再猜或收分"]
+
+
+## 擲骰動畫,回傳結果標題(例如「9 點」)。
+func _play_dice(info: Dictionary) -> String:
 	center_label.text = "比大小"
+	banqi_view.visible = false
 	dice_view.visible = true
 	sfx.play("dice")
 	var t := 0.0
@@ -607,22 +657,43 @@ func _on_guess(g: int) -> void:
 		t += get_process_delta_time()
 		dice_view.show_faces(anim_rng.randi_range(1, 6), anim_rng.randi_range(1, 6))
 	dice_view.show_faces(info["dice"][0], info["dice"][1])
-	var total: int = info["total"]
-	match info["result"]:
-		DoubleUp.Result.WIN:
-			sfx.play("du_win")
-			_message("%d 點  猜對!\nWIN %d" % [total, info["win"]])
-		DoubleUp.Result.LOSE:
-			sfx.play("du_lose")
-			_message("%d 點  猜錯\nWIN 歸零" % total)
-		_:
-			_message("%d 點  和局\n可再猜" % total)
-	await _wait(1.2)
-	hud_lock = false
-	if game.win == 0:
-		dice_view.visible = false
-		_clear_message()
-	busy = false
-	_refresh()
-	if game.win > 0:
-		center_label.text = "WIN %d\n再猜或收分" % game.win
+	return "%d 點" % info["total"]
+
+
+## 翻暗棋動畫:兩枚蓋著的棋子晃動 → 翻開玩家選的 → 翻開莊家的。回傳例如「傌 對 包」。
+func _play_banqi(info: Dictionary, g: int) -> String:
+	center_label.text = "翻棋"
+	dice_view.visible = false
+	banqi_view.reset()
+	banqi_view.pieces = [int(info["pieces"][0]), int(info["pieces"][1])]
+	banqi_view.visible = true
+	sfx.play("dice")
+	var t := 0.0
+	while t < 0.6:
+		await get_tree().process_frame
+		t += get_process_delta_time()
+		var amp := 10.0 * (1.0 - t / 0.6)
+		banqi_view.wobble = [sin(t * 50.0) * amp, sin(t * 50.0 + 2.0) * amp]
+		banqi_view.queue_redraw()
+	banqi_view.wobble = [0.0, 0.0]
+	var pick := 0 if g == DoubleUp.Guess.SMALL else 1
+	banqi_view.mine = pick
+	await _flip(pick)
+	await _wait(0.35)
+	await _flip(1 - pick)
+	return "%s 對 %s" % [DoubleUp.piece_name(info["mine"]), DoubleUp.piece_name(info["theirs"])]
+
+
+func _flip(k: int) -> void:
+	sfx.play("bet")
+	var dur := 0.14
+	var t := 0.0
+	while t < dur * 2.0:
+		await get_tree().process_frame
+		t += get_process_delta_time()
+		if t >= dur:
+			banqi_view.revealed[k] = true
+		banqi_view.flip_scale[k] = absf(1.0 - minf(t, dur * 2.0) / dur)
+		banqi_view.queue_redraw()
+	banqi_view.flip_scale[k] = 1.0
+	banqi_view.queue_redraw()

@@ -153,7 +153,7 @@ func _build_root() -> void:
 			used += 1
 	var items := [
 		["audio", "聲音", "靜音" if a["mute"] else "主音量 %d%%" % roundi(a["master"] * 100.0)],
-		["display", "顯示", "全螢幕:%s" % ("開" if prefs.display["fullscreen"] else "關")],
+		["display", "顯示", "主題:%s" % UserPrefs.choice_name(UserPrefs.SKINS, prefs.display["skin"])],
 		["game", "遊戲", "動畫速度 ×%.1f" % prefs.game["anim_speed"]],
 		["controls", "輸入控制", "鍵盤 + 滑鼠 自訂按鍵"],
 		["mode", "模式", "DEBUG(調整視窗)" if prefs.game["mode"] == "debug" else "正常"],
@@ -208,6 +208,7 @@ func _build_audio() -> void:
 
 func _build_display() -> void:
 	_toggle_row("全螢幕", prefs.display, "fullscreen")
+	_cycle_row("遊戲主題", prefs.display, "skin", UserPrefs.SKINS)
 	_cycle_row("中央底板顏色", prefs.display, "theme", UserPrefs.THEMES)
 	_cycle_row("跑燈燈號大小", prefs.display, "led_size", UserPrefs.LED_SIZES)
 	_toggle_row("大獎閃光", prefs.display, "jackpot_flash")
@@ -219,7 +220,8 @@ func _build_display() -> void:
 
 func _build_game() -> void:
 	_slider_row("動畫速度", prefs.game, "anim_speed", 0.5, 2.0, 0.1, func(v): return "×%.1f" % v)
-	var note := _lbl("只改變跑燈與提示的節奏,不影響機率與結果。", 26, DIM)
+	_cycle_row("比大小方式", prefs.game, "double_style", UserPrefs.DOUBLE_STYLES)
+	var note := _lbl("動畫速度只改變跑燈與提示的節奏,不影響機率與結果。\n翻暗棋:從 32 枚暗棋抽兩枚,選左或右,另一枚歸莊家。帥>仕>相>俥>傌>炮>兵,兵吃帥,同階級和局。與擲骰一樣猜對 ×2、猜錯歸零,期望值相同。", 26, DIM)
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_content.add_child(note)
 	_reset_button("game", "還原遊戲預設")
